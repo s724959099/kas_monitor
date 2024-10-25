@@ -114,8 +114,8 @@ def fetch_and_process_data(symbol):
             # ],
             "holder_total": str(data["holderTotal"]),  # 转换为字符串
             "transfer_total": str(data["transferTotal"]),  # 转换为字符串
-            "floor_price": data["price"]["floorPrice"],
-            "change24h": data["price"]["change24h"],
+            "floor_price": data.get("price", {}).get("floorPrice", 0),
+            "change24h": data.get("price", {}).get("change24h", 0),
             "price_history": data["priceHistory"],
         }
 
