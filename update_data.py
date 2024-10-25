@@ -116,7 +116,7 @@ def fetch_and_process_data(symbol):
             "transfer_total": str(data["transferTotal"]),  # 转换为字符串
             "floor_price": data.get("price", {}).get("floorPrice", 0),
             "change24h": data.get("price", {}).get("change24h", 0),
-            "price_history": data["priceHistory"],
+            "price_history": data.get("priceHistory", []),
         }
 
         # 计算 top 5, 10, 15, ..., 50 的总量和百分比
