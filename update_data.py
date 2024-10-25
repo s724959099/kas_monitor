@@ -5,6 +5,24 @@ import pandas as pd
 import json
 import pyarrow as pa
 import pyarrow.parquet as pq
+import pandas as pd
+import pickle
+import os
+
+
+def read_pickle_file(file_path):
+    if os.path.exists(file_path):
+        with open(file_path, "rb") as file:
+            return pickle.load(file)
+    return pd.DataFrame()
+
+
+def update_pickle_file(file_path, new_data):
+    df = read_pickle_file(file_path)
+    new_df = pd.DataFrame([new_data])
+    updated_df = pd.concat([df, new_df], ignore_index=True)
+    with open(file_path, "wb") as file:
+        pickle.dump(updated_df, file)
 
 
 def line_notify(message):
@@ -47,8 +65,34 @@ def read_parquet_file(file_path):
 def update_parquet_file(file_path, new_data):
     df = read_parquet_file(file_path)
     new_df = pd.DataFrame([new_data])
+
+    # 转换可能包含大整数的列为字符串
+    columns_to_convert = ["max_supply", "holder_total", "transfer_total"]
+    for col in columns_to_convert:
+        if col in new_df.columns:
+            new_df[col] = new_df[col].astype(str)
+
+    # 处理 top N 总量列
+    for i in range(5, 51, 5):
+        col = f"top{i}_total_amount"
+        if col in new_df.columns:
+            new_df[col] = new_df[col].astype(str)
+
     updated_df = pd.concat([df, new_df], ignore_index=True)
-    updated_df.to_parquet(file_path, index=False)
+
+    # 创建 PyArrow 表格，明确指定大整数列的类型
+    schema = []
+    for col in updated_df.columns:
+        if col in columns_to_convert or (
+            col.startswith("top") and col.endswith("_total_amount")
+        ):
+            schema.append((col, pa.string()))
+        else:
+            # 让 PyArrow 自动推断其他列的类型
+            schema.append((col, pa.from_numpy_dtype(updated_df[col].dtype)))
+
+    table = pa.Table.from_pandas(updated_df, schema=pa.schema(schema))
+    pq.write_table(table, file_path)
 
 
 def fetch_and_process_data(symbol):
@@ -58,7 +102,7 @@ def fetch_and_process_data(symbol):
         data = response.json()
         processed_data = {
             "timestamp": datetime.now().isoformat(),
-            "max_supply": data["maxSupply"],
+            "max_supply": str(data["maxSupply"]),  # 转换为字符串
             "status": data["status"],
             # "holders": [
             #     {
@@ -68,8 +112,8 @@ def fetch_and_process_data(symbol):
             #     }
             #     for holder in data["holders"]
             # ],
-            "holder_total": data["holderTotal"],
-            "transfer_total": data["transferTotal"],
+            "holder_total": str(data["holderTotal"]),  # 转换为字符串
+            "transfer_total": str(data["transferTotal"]),  # 转换为字符串
             "floor_price": data["price"]["floorPrice"],
             "change24h": data["price"]["change24h"],
             "price_history": data["priceHistory"],
@@ -77,9 +121,9 @@ def fetch_and_process_data(symbol):
 
         # 计算 top 5, 10, 15, ..., 50 的总量和百分比
         for i in range(5, 51, 5):
-            total_amount = sum(holder["amount"] for holder in data["holders"][:i])
-            total_percentage = total_amount / data["maxSupply"]
-            processed_data[f"top{i}_total_amount"] = total_amount
+            total_amount = sum(int(holder["amount"]) for holder in data["holders"][:i])
+            total_percentage = total_amount / int(data["maxSupply"])
+            processed_data[f"top{i}_total_amount"] = str(total_amount)  # 转换为字符串
             processed_data[f"top{i}_total_percentage"] = total_percentage
 
         processed_data["symbol"] = symbol
@@ -112,7 +156,8 @@ def task():
         for symbol in symbols:
             data = fetch_and_process_data(symbol)
             if data:
-                update_parquet_file(f"{symbol}.parquet", data)
+                # update_parquet_file(f"{symbol}.parquet", data)
+                update_pickle_file(f"{symbol}.pkl", data)
                 print(f"Data updated for {symbol}")
         time.sleep(60)  # 休眠60秒
 

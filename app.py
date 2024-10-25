@@ -1,6 +1,6 @@
 import plotly.express as px
 import streamlit as st
-from update_data import read_symbols, write_symbols, read_parquet_file
+from update_data import read_symbols, write_symbols, read_pickle_file
 
 # 确保这是第一个 Streamlit 命令
 st.set_page_config(layout="wide")
@@ -43,7 +43,7 @@ selected_symbol = st.selectbox(
     index=0,  # Default to the first token in the list
 )
 
-df = read_parquet_file(f"{selected_symbol}.parquet")
+df = read_pickle_file(f"{selected_symbol}.parquet")
 
 if not df.empty:
     st.text(f"Last updated: {df['timestamp'].max()}")
