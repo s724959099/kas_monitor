@@ -60,14 +60,14 @@ def fetch_and_process_data(symbol):
             "timestamp": datetime.now().isoformat(),
             "max_supply": data["maxSupply"],
             "status": data["status"],
-            "holders": [
-                {
-                    "address": holder["address"],
-                    "amount": holder["amount"],
-                    "percentage": holder["amount"] / data["maxSupply"],
-                }
-                for holder in data["holders"]
-            ],
+            # "holders": [
+            #     {
+            #         "address": holder["address"],
+            #         "amount": holder["amount"],
+            #         "percentage": holder["amount"] / data["maxSupply"],
+            #     }
+            #     for holder in data["holders"]
+            # ],
             "holder_total": data["holderTotal"],
             "transfer_total": data["transferTotal"],
             "floor_price": data["price"]["floorPrice"],
