@@ -43,7 +43,7 @@ selected_symbol = st.selectbox(
     index=0,  # Default to the first token in the list
 )
 
-df = read_pickle_file(f"{selected_symbol}.parquet")
+df = read_pickle_file(f"{selected_symbol}.pkl")
 
 if not df.empty:
     st.text(f"Last updated: {df['timestamp'].max()}")
