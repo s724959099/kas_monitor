@@ -7,8 +7,8 @@ import threading
 import time
 import requests
 import json
-import time
-from datetime import datetime
+import pyarrow as pa
+import pyarrow.parquet as pq
 
 # 确保这是第一个 Streamlit 命令
 st.set_page_config(layout="wide")
@@ -70,10 +70,25 @@ def fetch_and_process_data(symbol):
             processed_data[f"top{i}_total_amount"] = total_amount
             processed_data[f"top{i}_total_percentage"] = total_percentage
 
+        processed_data["symbol"] = symbol
         return processed_data
     else:
         print(f"Failed to fetch data for {symbol}. Status code: {response.status_code}")
         return None
+
+
+def read_parquet_file(file_path):
+    try:
+        return pd.read_parquet(file_path)
+    except FileNotFoundError:
+        return pd.DataFrame()
+
+
+def update_parquet_file(file_path, new_data):
+    df = read_parquet_file(file_path)
+    new_df = pd.DataFrame([new_data])
+    updated_df = pd.concat([df, new_df], ignore_index=True)
+    updated_df.to_parquet(file_path, index=False)
 
 
 def read_existing_data(file_path):
@@ -115,18 +130,6 @@ def write_symbols(symbols):
             f.write(f"{symbol}\n")
 
 
-# 定义要每分钟执行的函数
-def task():
-    while True:
-        symbols = read_symbols()
-        print(f"Task executed at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-        for symbol in symbols:
-            data = fetch_and_process_data(symbol)
-            update_json_file(f"{symbol}.json", symbol, data)
-            print(f"Data updated for {symbol}")
-        time.sleep(60)  # 休眠60秒
-
-
 # Create Streamlit application
 st.title("KAS Golden Dog")
 
@@ -147,44 +150,31 @@ selected_symbol = st.selectbox(
     options=st.session_state.symbols,
     index=0,  # Default to the first token in the list
 )
-data = read_existing_data(f"{selected_symbol}.json")
-history = data["history"]
 
-st.text(f"Last updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+df = read_parquet_file(f"{selected_symbol}.parquet")
 
+if not df.empty:
+    st.text(f"Last updated: {df['timestamp'].max()}")
 
-# 创建并启动后台线程
-thread = threading.Thread(target=task, daemon=True)
-thread.start()
+    # 創建並顯示折線圖
+    col1, col2 = st.columns(2)
+    for idx, i in enumerate(range(5, 51, 5)):
+        column_name = f"top{i}_total_percentage"
+        fig = px.line(
+            df,
+            x="timestamp",
+            y=column_name,
+            title=f"Top {i} Holders Percentage Over Time for {selected_symbol}",
+        )
+        fig.update_layout(legend_title_text="Holder Group", height=300, width=400)
 
-# 提取 timestamp 和 top50_total_percentage 數據
-timestamps = [entry["timestamp"] for entry in history]
-# Create a DataFrame with percentages for top 5, 10, 15, ..., 50 holders
-df = pd.DataFrame({"Timestamp": pd.to_datetime(timestamps)})
-# Create separate DataFrames for each top holder group
-for i in range(5, 51, 5):
-    column_name = f"Top {i} Holders Percentage"
-    df[column_name] = [
-        sum(sorted([holder["amount"] for holder in entry["holders"]], reverse=True)[:i])
-        / entry["max_supply"]
-        for entry in history
-    ]
+        if idx % 2 == 0:
+            with col1:
+                st.plotly_chart(fig, use_container_width=True)
+        else:
+            with col2:
+                st.plotly_chart(fig, use_container_width=True)
+else:
+    st.write("No data available for this token yet.")
 
-# Create and display line charts in a 2x5 grid layout
-col1, col2 = st.columns(2)
-for idx, i in enumerate(range(5, 51, 5)):
-    column_name = f"Top {i} Holders Percentage"
-    fig = px.line(
-        df,
-        x="Timestamp",
-        y=column_name,
-        title=f"Top {i} Holders Percentage Over Time for {selected_symbol}",
-    )
-    fig.update_layout(legend_title_text="Holder Group", height=300, width=400)
-
-    if idx % 2 == 0:
-        with col1:
-            st.plotly_chart(fig, use_container_width=True)
-    else:
-        with col2:
-            st.plotly_chart(fig, use_container_width=True)
+# 創建並啟動後台線程
