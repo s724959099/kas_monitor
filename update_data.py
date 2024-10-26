@@ -102,22 +102,28 @@ def fetch_and_process_data(symbol):
         data = response.json()
         processed_data = {
             "timestamp": datetime.now().isoformat(),
-            "max_supply": str(data.get("maxSupply", "")),
-            "status": data.get("status", ""),
-            "holder_total": str(data.get("holderTotal", "")),
-            "transfer_total": str(data.get("transferTotal", "")),
+            "max_supply": str(data["maxSupply"]),  # 转换为字符串
+            "status": data["status"],
+            # "holders": [
+            #     {
+            #         "address": holder["address"],
+            #         "amount": holder["amount"],
+            #         "percentage": holder["amount"] / data["maxSupply"],
+            #     }
+            #     for holder in data["holders"]
+            # ],
+            "holder_total": str(data["holderTotal"]),  # 转换为字符串
+            "transfer_total": str(data["transferTotal"]),  # 转换为字符串
             "floor_price": data.get("price", {}).get("floorPrice", 0),
             "change24h": data.get("price", {}).get("change24h", 0),
             "price_history": data.get("priceHistory", []),
         }
 
         # 计算 top 5, 10, 15, ..., 50 的总量和百分比
-        holders = data.get("holders", [])
-        max_supply = int(data.get("maxSupply", 0))
         for i in range(5, 51, 5):
-            total_amount = sum(int(holder.get("amount", 0)) for holder in holders[:i])
-            total_percentage = total_amount / max_supply if max_supply else 0
-            processed_data[f"top{i}_total_amount"] = str(total_amount)
+            total_amount = sum(int(holder["amount"]) for holder in data["holders"][:i])
+            total_percentage = total_amount / int(data["maxSupply"])
+            processed_data[f"top{i}_total_amount"] = str(total_amount)  # 转换为字符串
             processed_data[f"top{i}_total_percentage"] = total_percentage
 
         processed_data["symbol"] = symbol

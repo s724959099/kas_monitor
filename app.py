@@ -48,8 +48,31 @@ df = read_pickle_file(f"{selected_symbol}.pkl")
 if not df.empty:
     st.text(f"Last updated: {df['timestamp'].max()}")
 
-    # 創建並顯示折線圖
+    # 创建新的图表：floor price, holder_total, transfer_total
+    new_charts = [
+        {"column": "floor_price", "title": "Floor Price Over Time"},
+        {"column": "holder_total", "title": "Total Holders Over Time"},
+        {"column": "transfer_total", "title": "Total Transfers Over Time"},
+    ]
+
     col1, col2 = st.columns(2)
+    for idx, chart in enumerate(new_charts):
+        fig = px.line(
+            df,
+            x="timestamp",
+            y=chart["column"],
+            title=f"{chart['title']} for {selected_symbol}",
+        )
+        fig.update_layout(height=300, width=400)
+
+        if idx % 2 == 0:
+            with col1:
+                st.plotly_chart(fig, use_container_width=True)
+        else:
+            with col2:
+                st.plotly_chart(fig, use_container_width=True)
+
+    # 创建并显示原有的 top X 持有者百分比图表
     for idx, i in enumerate(range(5, 51, 5)):
         column_name = f"top{i}_total_percentage"
         fig = px.line(
