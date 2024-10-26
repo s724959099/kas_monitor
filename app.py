@@ -50,6 +50,7 @@ if not df.empty:
     st.text(f"Last updated: {df['timestamp'].max()}")
 
     # 计算 holder_total 的差值
+    df["holder_total"] = pd.to_numeric(df["holder_total"], errors="coerce")
     df["holder_total_change"] = df["holder_total"].diff()
 
     # 定义所有要显示的图表
