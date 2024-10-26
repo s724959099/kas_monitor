@@ -63,14 +63,13 @@ if not df.empty:
     ]
 
     # 添加其他 top X 持有者百分比图表
-    for i in [5, 10, 15, 20, 25, 30, 35, 40, 45, 50]:
-        if i != 5:  # 我们已经在上面添加了 top10，所以这里跳过 top5
-            charts.append(
-                {
-                    "column": f"top{i}_total_percentage",
-                    "title": f"Top {i} Holders Percentage Over Time",
-                }
-            )
+    for i in [10, 20, 40, 50]:
+        charts.append(
+            {
+                "column": f"top{i}_total_percentage",
+                "title": f"Top {i} Holders Percentage Over Time",
+            }
+        )
 
     col1, col2 = st.columns(2)
     for idx, chart in enumerate(charts):
