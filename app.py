@@ -54,14 +54,14 @@ if not df.empty:
         {"column": "holder_total", "title": "Total Holders Over Time"},
         {"column": "transfer_total", "title": "Total Transfers Over Time"},
         {
-            "column": "top10_total_percentage",
-            "title": "Top 10 Holders Percentage Over Time",
+            "column": "top5_total_percentage",
+            "title": "Top 5 Holders Percentage Over Time",
         },
     ]
 
     # 添加其他 top X 持有者百分比图表
-    for i in [5, 15, 20, 25, 30, 35, 40, 45, 50]:
-        if i != 10:  # 我们已经在上面添加了 top10
+    for i in [5, 10, 15, 20, 25, 30, 35, 40, 45, 50]:
+        if i != 5:  # 我们已经在上面添加了 top10，所以这里跳过 top5
             charts.append(
                 {
                     "column": f"top{i}_total_percentage",
