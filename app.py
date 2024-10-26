@@ -48,15 +48,29 @@ df = read_pickle_file(f"{selected_symbol}.pkl")
 if not df.empty:
     st.text(f"Last updated: {df['timestamp'].max()}")
 
-    # 创建新的图表：floor price, holder_total, transfer_total
-    new_charts = [
+    # 定义所有要显示的图表
+    charts = [
         {"column": "floor_price", "title": "Floor Price Over Time"},
         {"column": "holder_total", "title": "Total Holders Over Time"},
         {"column": "transfer_total", "title": "Total Transfers Over Time"},
+        {
+            "column": "top10_total_percentage",
+            "title": "Top 10 Holders Percentage Over Time",
+        },
     ]
 
+    # 添加其他 top X 持有者百分比图表
+    for i in [5, 15, 20, 25, 30, 35, 40, 45, 50]:
+        if i != 10:  # 我们已经在上面添加了 top10
+            charts.append(
+                {
+                    "column": f"top{i}_total_percentage",
+                    "title": f"Top {i} Holders Percentage Over Time",
+                }
+            )
+
     col1, col2 = st.columns(2)
-    for idx, chart in enumerate(new_charts):
+    for idx, chart in enumerate(charts):
         fig = px.line(
             df,
             x="timestamp",
@@ -64,24 +78,6 @@ if not df.empty:
             title=f"{chart['title']} for {selected_symbol}",
         )
         fig.update_layout(height=300, width=400)
-
-        if idx % 2 == 0:
-            with col1:
-                st.plotly_chart(fig, use_container_width=True)
-        else:
-            with col2:
-                st.plotly_chart(fig, use_container_width=True)
-
-    # 创建并显示原有的 top X 持有者百分比图表
-    for idx, i in enumerate(range(5, 51, 5)):
-        column_name = f"top{i}_total_percentage"
-        fig = px.line(
-            df,
-            x="timestamp",
-            y=column_name,
-            title=f"Top {i} Holders Percentage Over Time for {selected_symbol}",
-        )
-        fig.update_layout(legend_title_text="Holder Group", height=300, width=400)
 
         if idx % 2 == 0:
             with col1:
