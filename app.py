@@ -1,5 +1,6 @@
 import plotly.express as px
 import streamlit as st
+import pandas as pd
 from update_data import read_symbols, write_symbols, read_pickle_file
 
 # 确保这是第一个 Streamlit 命令
@@ -48,19 +49,22 @@ df = read_pickle_file(f"{selected_symbol}.pkl")
 if not df.empty:
     st.text(f"Last updated: {df['timestamp'].max()}")
 
+    # 计算 holder_total 的差值
+    df["holder_total_change"] = df["holder_total"].diff()
+
     # 定义所有要显示的图表
     charts = [
         {"column": "floor_price", "title": "Floor Price Over Time"},
-        {"column": "holder_total", "title": "Total Holders Over Time"},
+        {"column": "holder_total_change", "title": "Change in Total Holders Over Time"},
         {"column": "transfer_total", "title": "Total Transfers Over Time"},
         {
-            "column": "top5_total_percentage",
-            "title": "Top 5 Holders Percentage Over Time",
+            "column": "top10_total_percentage",
+            "title": "Top 10 Holders Percentage Over Time",
         },
     ]
 
     # 添加其他 top X 持有者百分比图表
-    for i in [5, 10, 15, 20, 25, 30, 35, 40, 45, 50]:
+    for i in [5, 15, 20, 25, 30, 35, 40, 45, 50]:
         if i != 5:  # 我们已经在上面添加了 top10，所以这里跳过 top5
             charts.append(
                 {
@@ -78,6 +82,10 @@ if not df.empty:
             title=f"{chart['title']} for {selected_symbol}",
         )
         fig.update_layout(height=300, width=400)
+
+        # 对于 holder_total_change，我们可能需要调整 y 轴以更好地显示变化
+        if chart["column"] == "holder_total_change":
+            fig.update_yaxes(zeroline=True, zerolinewidth=2, zerolinecolor="red")
 
         if idx % 2 == 0:
             with col1:
