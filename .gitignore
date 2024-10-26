@@ -6,4 +6,3 @@ __pycache__/
 *.json
 *.parquet
 symbols
-*.pkl
