@@ -2,6 +2,8 @@ import plotly.express as px
 import streamlit as st
 from update_data import read_symbols, write_symbols, read_pickle_file
 import pandas as pd
+import math
+import numpy as np
 
 # 确保这是第一个 Streamlit 命令
 st.set_page_config(layout="wide")
@@ -47,6 +49,20 @@ selected_symbol = st.selectbox(
 df = read_pickle_file(f"{selected_symbol}.pkl")
 
 if not df.empty:
+    # 如果數據超過1000行，進行取樣
+    if len(df) > 1000:
+        # 計算需要刪除的行數
+        rows_to_remove = len(df) - 1000
+        # 計算保留間隔
+        keep_interval = len(df) // rows_to_remove + 1
+        # 創建布爾索引，標記要保留的行
+        keep_index = np.ones(len(df), dtype=bool)
+        keep_index[::keep_interval] = False
+        # 只刪除需要刪除的行數
+        keep_index[~keep_index][:rows_to_remove] = False
+        # 應用索引進行取樣
+        df = df[keep_index].reset_index(drop=True)
+
     st.text(f"Last updated: {df['timestamp'].max()}")
     df["transfer_total"] = pd.to_numeric(df["transfer_total"], errors="coerce")
     df["transfer_total_change"] = df["transfer_total"].diff()
